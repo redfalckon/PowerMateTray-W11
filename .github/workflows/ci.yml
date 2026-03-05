@@ -5,9 +5,6 @@ on:
     branches: [ master, main ]
   workflow_dispatch:
 
-permissions:
-  contents: read
-
 jobs:
   build:
     runs-on: windows-latest
@@ -16,8 +13,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup MSBuild
+      - name: Install Visual Studio Build Tools
         uses: microsoft/setup-msbuild@v2
+
+      - name: Install MFC Components
+        run: |
+          choco install visualstudio2022-workload-vctools -y
 
       - name: Build
         run: msbuild PowerMateTray.sln /p:Configuration=Release
