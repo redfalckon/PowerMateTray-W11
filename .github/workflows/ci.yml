@@ -1,4 +1,4 @@
-name: Build PowerMateTray
+name: Build PowerMateTray (Release)
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  release:
     runs-on: windows-latest
 
     steps:
@@ -18,30 +18,17 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      # Some Windows SDK / resource builds want MFC headers (afxres.h)
-      - name: Install VS C++ tools workload (includes Windows headers)
-        run: choco install visualstudio2022-workload-vctools -y
+      # Build wxWidgets using the repo script
+      - name: Build wxWidgets
+        run: cmd /c build_wx.bat
 
-      # Build wxWidgets using the repo's script (this repo already has one)
-      - name: Build wxWidgets (Release)
-        shell: pwsh
-        run: |
-          if (Test-Path ".\build_wx.bat") {
-            cmd /c ".\build_wx.bat"
-          } elseif (Test-Path ".\submodule\wxWidgets\build\msw\build.bat") {
-            cmd /c ".\submodule\wxWidgets\build\msw\build.bat -j4 -p x64"
-          } else {
-            Write-Host "Could not find wxWidgets build script. Check submodule path."
-            exit 1
-          }
-
-      - name: Build PowerMateTray (Release)
+      - name: Build PowerMateTray (Release x64)
         run: msbuild PowerMateTray.sln /p:Configuration=Release /p:Platform=x64
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PowerMateTray
+          name: PowerMateTray-Release
           path: |
             **/Release/*.exe
             **/Release/*.dll
