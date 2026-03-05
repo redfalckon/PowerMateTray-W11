@@ -10,18 +10,33 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout (with submodules)
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      - name: Install Visual Studio Build Tools
+      - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Install MFC Components
-        run: |
-          choco install visualstudio2022-workload-vctools -y
+      # Some Windows SDK / resource builds want MFC headers (afxres.h)
+      - name: Install VS C++ tools workload (includes Windows headers)
+        run: choco install visualstudio2022-workload-vctools -y
 
-      - name: Build
-        run: msbuild PowerMateTray.sln /p:Configuration=Release
+      # Build wxWidgets using the repo's script (this repo already has one)
+      - name: Build wxWidgets (Release)
+        shell: pwsh
+        run: |
+          if (Test-Path ".\build_wx.bat") {
+            cmd /c ".\build_wx.bat"
+          } elseif (Test-Path ".\submodule\wxWidgets\build\msw\build.bat") {
+            cmd /c ".\submodule\wxWidgets\build\msw\build.bat -j4 -p x64"
+          } else {
+            Write-Host "Could not find wxWidgets build script. Check submodule path."
+            exit 1
+          }
+
+      - name: Build PowerMateTray (Release)
+        run: msbuild PowerMateTray.sln /p:Configuration=Release /p:Platform=x64
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
